@@ -1,0 +1,61 @@
+{% extends "core/base.html" %}
+{% block content %}
+<div class="card narrow">
+  <h1 id="title">Sign in</h1>
+  <p class="muted">Report civic problems and track when they get fixed.</p>
+  {% csrf_token %}
+  <div id="err" class="flash error" style="display:none"></div>
+  <label id="nameRow" style="display:none">Your name<input id="name" autocomplete="name"></label>
+  <label>Email<input id="email" type="email" autocomplete="email"></label>
+  <label>Password<input id="password" type="password" autocomplete="current-password"></label>
+  <button id="go" class="btn">Sign in</button>
+  <p class="muted center"><a href="#" id="toggle">New here? Create an account</a></p>
+</div>
+
+{{ firebase_config|json_script:"fb-config" }}
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+const auth = getAuth(initializeApp(JSON.parse(document.getElementById("fb-config").textContent)));
+const $ = id => document.getElementById(id);
+let register = false;
+
+$("toggle").onclick = e => {
+  e.preventDefault(); register = !register;
+  $("title").textContent = register ? "Create account" : "Sign in";
+  $("go").textContent = register ? "Create account" : "Sign in";
+  $("nameRow").style.display = register ? "block" : "none";
+  $("toggle").textContent = register ? "Have an account? Sign in" : "New here? Create an account";
+};
+
+function showError(msg) { $("err").textContent = msg; $("err").style.display = "block"; }
+
+$("go").onclick = async () => {
+  $("err").style.display = "none"; $("go").disabled = true;
+  try {
+    const email = $("email").value.trim(), pw = $("password").value;
+    let cred;
+    if (register) {
+      cred = await createUserWithEmailAndPassword(auth, email, pw);
+      if ($("name").value.trim()) await updateProfile(cred.user, { displayName: $("name").value.trim() });
+    } else {
+      cred = await signInWithEmailAndPassword(auth, email, pw);
+    }
+    const idToken = await cred.user.getIdToken(true);
+    const res = await fetch("{% url 'session_login' %}", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]").value },
+      body: JSON.stringify({ idToken })
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+    location.href = data.redirect;
+  } catch (e) {
+    showError((e.code || e.message || "Login failed").replace("auth/", "").replaceAll("-", " "));
+    $("go").disabled = false;
+  }
+};
+</script>
+{% endblock %}

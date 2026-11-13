@@ -1,0 +1,27 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CivicWatch AI</title>
+  <link rel="stylesheet" href="{% static 'core/style.css' %}">
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="/">🏙️ CivicWatch <span>AI</span></a>
+  {% if user %}
+  <nav>
+    {% if is_admin %}<a href="{% url 'admin_panel' %}">Admin panel</a>
+    {% else %}<a href="{% url 'my_reports' %}">My reports</a><a href="{% url 'report_new' %}">+ Report issue</a>{% endif %}
+    <span class="who">{{ user.email }}{% if is_admin %} · admin{% endif %}</span>
+    <a href="{% url 'logout' %}">Logout</a>
+  </nav>
+  {% endif %}
+</header>
+<main>
+  {% for m in messages %}<div class="flash {{ m.tags }}">{{ m }}</div>{% endfor %}
+  {% block content %}{% endblock %}
+</main>
+</body>
+</html>

@@ -1,0 +1,51 @@
+{% extends "core/base.html" %}
+{% block content %}
+<a href="{% if is_admin %}{% url 'admin_panel' %}{% else %}{% url 'my_reports' %}{% endif %}" class="muted">← Back</a>
+<div class="card">
+  <div class="row between">
+    <h1>{{ r.title }}</h1>
+    <span class="pill s-{{ r.status }} big">{{ r.status_label }}</span>
+  </div>
+  <p class="muted">#{{ r.short_id }} · {{ r.category_label }} · {{ r.created_at|date:"d M Y, H:i" }}
+    {% if r.address %}· {{ r.address }}{% endif %}</p>
+  {% if r.image_path %}<img class="photo" src="/media/{{ r.image_path }}" alt="Evidence">{% endif %}
+  <p>{{ r.description|linebreaksbr }}</p>
+  {% if r.lat %}<p><a target="_blank" rel="noopener" href="https://www.google.com/maps?q={{ r.lat }},{{ r.lng }}">Open location in Maps ↗</a></p>{% endif %}
+  {% if r.duplicate_of %}<div class="flash info">Linked to an existing report of the same issue. Status updates apply to both.</div>{% endif %}
+</div>
+
+<div class="card">
+  <h2>Progress</h2>
+  <ul class="timeline">
+    {% for h in r.history %}
+    <li><b>{{ h.status|title }}</b> <span class="muted">{{ h.at|date:"d M Y, H:i" }}</span>
+      <div>{{ h.note }}</div></li>
+    {% endfor %}
+  </ul>
+</div>
+
+{% if is_admin %}
+<div class="card">
+  <h2>Admin action</h2>
+  <form method="post" action="{% url 'admin_update' r.id %}">
+    {% csrf_token %}
+    <label>Status
+      <select name="status">{% for k, v in statuses %}<option value="{{ k }}" {% if k == r.status %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></label>
+    <label>Note to citizen<textarea name="note" rows="2" placeholder="e.g. Crew assigned, repair scheduled for Friday"></textarea></label>
+    <button class="btn">Update status</button>
+  </form>
+</div>
+
+<div class="card">
+  <h2>🤖 AI analysis</h2>
+  <p><span class="pill p-{{ r.priority_level }}">{{ r.priority_level|title }} priority · {{ r.priority_score }}/100</span>
+     <span class="pill {% if r.ai.verdict == 'verified' %}s-resolved{% else %}s-rejected{% endif %}">
+       Evidence {{ r.ai.verification_score }}/100 · {{ r.ai.verdict|cut:"_" }}</span></p>
+  <p class="muted">Category: {{ r.category_label }} ({{ r.category_source }}{% if r.ai.category_confidence != None %}, confidence {{ r.ai.category_confidence }}{% endif %})</p>
+  {% if r.ai.flags %}<b>Flags</b><ul>{% for f in r.ai.flags %}<li>{{ f }}</li>{% endfor %}</ul>{% endif %}
+  <b>Why this priority</b><ul>{% for x in r.priority_reasons %}<li>{{ x }}</li>{% endfor %}</ul>
+  {% if r.duplicate_of %}<p>🔁 Duplicate of <a href="{% url 'report_detail' r.duplicate_of %}">another report</a> — {{ r.duplicate_reason }}</p>{% endif %}
+  {% if r.duplicate_count %}<p>🔁 {{ r.duplicate_count }} duplicate report(s) merged into this one.</p>{% endif %}
+</div>
+{% endif %}
+{% endblock %}

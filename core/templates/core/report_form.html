@@ -1,0 +1,32 @@
+{% extends "core/base.html" %}
+{% block content %}
+<div class="card narrow">
+  <h1>Report an issue</h1>
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <label>Title<input name="title" required maxlength="100" placeholder="e.g. Deep pothole near school gate"></label>
+    <label>Describe the problem
+      <textarea name="description" rows="4" required placeholder="What is wrong, how long, is it dangerous?"></textarea></label>
+    <label>Category
+      <select name="category">
+        <option value="auto">Let AI detect it</option>
+        {% for key, label in categories.items %}<option value="{{ key }}">{{ label }}</option>{% endfor %}
+      </select></label>
+    <label>Photo evidence<input type="file" name="photo" accept="image/*" capture="environment"></label>
+    <label>Address / landmark<input name="address" placeholder="Street, area, landmark"></label>
+    <input type="hidden" name="lat" id="lat"><input type="hidden" name="lng" id="lng">
+    <p class="muted" id="geo">📍 Detecting location…</p>
+    <button class="btn">Submit report</button>
+  </form>
+</div>
+<script>
+  const geo = document.getElementById("geo");
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(p => {
+      document.getElementById("lat").value = p.coords.latitude;
+      document.getElementById("lng").value = p.coords.longitude;
+      geo.textContent = "📍 Location attached";
+    }, () => geo.textContent = "📍 Location not shared - please type the address", {timeout: 8000});
+  } else geo.textContent = "";
+</script>
+{% endblock %}

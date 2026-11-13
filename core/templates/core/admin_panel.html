@@ -1,0 +1,37 @@
+{% extends "core/base.html" %}
+{% block content %}
+<h1>Admin panel</h1>
+<div class="stats">
+  <div class="stat"><b>{{ stats.total }}</b>Total</div>
+  <div class="stat"><b>{{ stats.submitted }}</b>New</div>
+  <div class="stat"><b>{{ stats.in_progress }}</b>In progress</div>
+  <div class="stat ok"><b>{{ stats.resolved }}</b>Resolved</div>
+  <div class="stat warn"><b>{{ stats.needs_review }}</b>Needs review</div>
+</div>
+
+<form class="filters" method="get">
+  <select name="status" onchange="this.form.submit()">
+    <option value="">All statuses</option>
+    {% for k, v in statuses %}<option value="{{ k }}" {% if k == status_f %}selected{% endif %}>{{ v }}</option>{% endfor %}
+  </select>
+  <select name="category" onchange="this.form.submit()">
+    <option value="">All categories</option>
+    {% for k, v in categories.items %}<option value="{{ k }}" {% if k == cat_f %}selected{% endif %}>{{ v }}</option>{% endfor %}
+  </select>
+  <label class="inline"><input type="checkbox" name="dups" value="1" {% if show_dups %}checked{% endif %} onchange="this.form.submit()"> Show merged duplicates</label>
+</form>
+
+<div class="tablewrap"><table>
+  <tr><th>Priority</th><th>Report</th><th>Category</th><th>AI evidence</th><th>Reports</th><th>Status</th></tr>
+  {% for r in rows %}
+  <tr onclick="location='{% url 'report_detail' r.id %}'">
+    <td><span class="pill p-{{ r.priority_level }}">{{ r.priority_level|title }} · {{ r.priority_score }}</span></td>
+    <td><b>{{ r.title }}</b><div class="muted">#{{ r.short_id }} · {{ r.user_email }} · {{ r.created_at|date:"d M" }}</div></td>
+    <td>{{ r.category_label }}</td>
+    <td>{% if r.ai.verdict == 'verified' %}✅ {{ r.ai.verification_score }}{% else %}⚠️ {{ r.ai.verification_score }}{% endif %}</td>
+    <td>{% if r.duplicate_of %}🔁 dup{% else %}{{ r.duplicate_count|add:1 }}{% endif %}</td>
+    <td><span class="pill s-{{ r.status }}">{{ r.status_label }}</span></td>
+  </tr>
+  {% empty %}<tr><td colspan="6" class="center muted">No reports match.</td></tr>{% endfor %}
+</table></div>
+{% endblock %}
